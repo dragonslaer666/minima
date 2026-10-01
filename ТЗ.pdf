@@ -1,0 +1,50 @@
+# /etc/nginx/sites-available/potok.conf
+# Сайт «Поток» — один статический файл. Разворачивается на любой VPS за 2 минуты.
+# Активация:  ln -s /etc/nginx/sites-available/potok.conf /etc/nginx/sites-enabled/
+#             nginx -t && systemctl reload nginx
+# HTTPS:      certbot --nginx -d ВАШ-ДОМЕН -d www.ВАШ-ДОМЕН   (сертификат подставится сам)
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name potok.example.ru www.potok.example.ru;   # ← замените на свой домен
+
+    root /var/www/potok;
+    index index.html;
+    charset utf-8;
+
+    # Отдаём index.html для любого пути (клиентская маршрутизация без перезагрузки)
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # HTML не кэшируем: обновили файл — правки видны сразу у всех.
+    # ВАЖНО: add_header внутри location ОТМЕНЯЕТ унаследованные заголовки из server,
+    # поэтому заголовки безопасности здесь продублированы — это не опечатка.
+    location = /index.html {
+        add_header Cache-Control "no-cache, must-revalidate";
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options SAMEORIGIN always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+    }
+
+    # Сжатие: файл ~300 КБ, по сети уйдёт ~70 КБ
+    gzip on;
+    gzip_comp_level 6;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+
+    # Базовые заголовки безопасности
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+    # Закрыть демо паролем, чтобы ссылку не увидели лишние (опционально):
+    #   apt install -y apache2-utils
+    #   htpasswd -c /etc/nginx/.htpasswd demo
+    # auth_basic "Демо Поток";
+    # auth_basic_user_file /etc/nginx/.htpasswd;
+
+    access_log /var/log/nginx/potok.access.log;
+    error_log  /var/log/nginx/potok.error.log;
+}
