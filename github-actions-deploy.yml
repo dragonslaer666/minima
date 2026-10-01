@@ -1,8 +1,0 @@
-# docker compose up -d     → сайт на порту 80
-services:
-  potok-web:
-    build: .
-    container_name: potok-web
-    restart: unless-stopped
-    ports:
-      - "80:80"
