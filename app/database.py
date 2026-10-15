@@ -66,7 +66,52 @@ CREATE TABLE IF NOT EXISTS login_throttles (
     window_started_at TEXT NOT NULL,
     attempts INTEGER NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    organization TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'owner' CHECK(role IN ('owner')),
+    email_verified_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    last_login_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+
+CREATE TABLE IF NOT EXISTS email_verification_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    purpose TEXT NOT NULL DEFAULT 'signup' CHECK(purpose IN ('signup')),
+    code_hash TEXT NOT NULL,
+    code_salt TEXT NOT NULL,
+    draft_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    consumed_at TEXT,
+    request_ip_hash TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_email_codes_lookup
+    ON email_verification_codes(email, purpose, consumed_at, expires_at);
+
+CREATE TABLE IF NOT EXISTS rate_limits (
+    bucket TEXT NOT NULL,
+    key_hash TEXT NOT NULL,
+    window_started_at TEXT NOT NULL,
+    window_seconds INTEGER NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (bucket, key_hash)
+);
 """
+
+# Columns added to `sessions` after the first release; applied to existing databases.
+SESSION_MIGRATIONS = {
+    "role": "TEXT NOT NULL DEFAULT 'admin'",
+    "organization": "TEXT NOT NULL DEFAULT ''",
+    "user_id": "INTEGER",
+}
 
 
 @contextmanager
@@ -114,9 +159,17 @@ def init_database(database_path: Path, seed_demo_data: bool = True) -> None:
     with connection(database_path) as conn:
         conn.execute("PRAGMA journal_mode = WAL")
         conn.executescript(SCHEMA)
+        _migrate_sessions(conn)
         exists = conn.execute("SELECT 1 FROM tickets LIMIT 1").fetchone()
         if seed_demo_data and not exists:
             _seed_demo_data(conn)
+
+
+def _migrate_sessions(conn: sqlite3.Connection) -> None:
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(sessions)").fetchall()}
+    for column, ddl in SESSION_MIGRATIONS.items():
+        if column not in existing:
+            conn.execute(f"ALTER TABLE sessions ADD COLUMN {column} {ddl}")
 
 
 def _seed_demo_data(conn: sqlite3.Connection) -> None:

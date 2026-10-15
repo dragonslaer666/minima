@@ -59,11 +59,13 @@ def login(client: TestClient) -> None:
 
 
 def test_auth_session_and_ticket_list(client: TestClient):
-    assert client.get("/api/v1/auth/session").json() == {
-        "authenticated": False,
-        "admin": None,
-        "smtpConfigured": True,
-    }
+    anonymous = client.get("/api/v1/auth/session").json()
+    assert anonymous["authenticated"] is False
+    assert anonymous["admin"] is None
+    assert anonymous["user"] is None
+    assert anonymous["role"] is None
+    assert anonymous["smtpConfigured"] is True
+    assert anonymous["signupEnabled"] is True
     assert client.get("/api/v1/support/tickets").status_code == 401
     assert client.post("/api/v1/auth/login", json={"email": "admin@minima.test", "password": "incorrect"}).status_code == 401
 
@@ -71,7 +73,9 @@ def test_auth_session_and_ticket_list(client: TestClient):
     session = client.get("/api/v1/auth/session").json()
     assert session["authenticated"] is True
     assert session["admin"] == {"email": "admin@minima.test", "name": "Тестовый администратор"}
+    assert session["role"] == "admin"
     assert "password" not in session
+    assert "password_hash" not in session
 
     result = client.get("/api/v1/support/tickets")
     assert result.status_code == 200

@@ -1,3 +1,4 @@
+"""Minima support backend."""
 from __future__ import annotations
 
 import os
@@ -29,6 +30,17 @@ class Settings:
     smtp_starttls: bool
     smtp_ssl: bool
     smtp_timeout: int
+    # Registration of an organization owner with email confirmation.
+    signup_enabled: bool = True
+    password_min_length: int = 12
+    email_code_ttl_minutes: int = 15
+    email_code_length: int = 6
+    email_code_max_attempts: int = 5
+    email_code_resend_cooldown_seconds: int = 60
+    email_code_max_per_email_hour: int = 5
+    email_code_max_per_ip_hour: int = 20
+    confirm_max_per_ip_hour: int = 30
+    dev_log_email_codes: bool = False
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -54,6 +66,16 @@ class Settings:
             smtp_starttls=_env_bool("SMTP_STARTTLS", True),
             smtp_ssl=_env_bool("SMTP_SSL", False),
             smtp_timeout=_env_int("SMTP_TIMEOUT", 12),
+            signup_enabled=_env_bool("SIGNUP_ENABLED", True),
+            password_min_length=_env_int("PASSWORD_MIN_LENGTH", 12),
+            email_code_ttl_minutes=_env_int("EMAIL_CODE_TTL_MINUTES", 15),
+            email_code_length=_env_int("EMAIL_CODE_LENGTH", 6),
+            email_code_max_attempts=_env_int("EMAIL_CODE_MAX_ATTEMPTS", 5),
+            email_code_resend_cooldown_seconds=_env_int("EMAIL_CODE_RESEND_COOLDOWN_SECONDS", 60),
+            email_code_max_per_email_hour=_env_int("EMAIL_CODE_MAX_PER_EMAIL_HOUR", 5),
+            email_code_max_per_ip_hour=_env_int("EMAIL_CODE_MAX_PER_IP_HOUR", 20),
+            confirm_max_per_ip_hour=_env_int("CONFIRM_MAX_PER_IP_HOUR", 30),
+            dev_log_email_codes=_env_bool("DEV_LOG_EMAIL_CODES", False),
         )
 
     @property
@@ -84,6 +106,25 @@ class Settings:
         for name, address in (("SMTP_FROM", self.smtp_from), ("SMTP_REPLY_TO", self.smtp_reply_to)):
             if address and ("\r" in address or "\n" in address or not parseaddr(address)[1]):
                 raise RuntimeError(f"{name} должен содержать корректный адрес без переводов строк.")
+        if self.password_min_length < 8 or self.password_min_length > 128:
+            raise RuntimeError("PASSWORD_MIN_LENGTH должен быть от 8 до 128.")
+        if self.email_code_ttl_minutes < 1 or self.email_code_ttl_minutes > 60:
+            raise RuntimeError("EMAIL_CODE_TTL_MINUTES должен быть от 1 до 60.")
+        if self.email_code_length < 4 or self.email_code_length > 8:
+            raise RuntimeError("EMAIL_CODE_LENGTH должен быть от 4 до 8.")
+        if self.email_code_max_attempts < 3 or self.email_code_max_attempts > 10:
+            raise RuntimeError("EMAIL_CODE_MAX_ATTEMPTS должен быть от 3 до 10.")
+        if self.email_code_resend_cooldown_seconds < 10 or self.email_code_resend_cooldown_seconds > 3600:
+            raise RuntimeError("EMAIL_CODE_RESEND_COOLDOWN_SECONDS должен быть от 10 до 3600.")
+        for name, value in (
+            ("EMAIL_CODE_MAX_PER_EMAIL_HOUR", self.email_code_max_per_email_hour),
+            ("EMAIL_CODE_MAX_PER_IP_HOUR", self.email_code_max_per_ip_hour),
+            ("CONFIRM_MAX_PER_IP_HOUR", self.confirm_max_per_ip_hour),
+        ):
+            if value < 1 or value > 1000:
+                raise RuntimeError(f"{name} должен быть от 1 до 1000.")
+        if self.dev_log_email_codes and self.app_env == "production":
+            raise RuntimeError("DEV_LOG_EMAIL_CODES нельзя включать в APP_ENV=production.")
 
 
 def _env_bool(name: str, default: bool) -> bool:

@@ -278,6 +278,20 @@
     .form-error { margin: 0 0 12px; padding: 9px 10px; border: 1px solid rgba(225,29,46,.3); border-radius: 7px; background: rgba(225,29,46,.08); color: #ff949c; font-size: 10px; line-height: 1.45; }
     .form-error[hidden] { display: none; }
     .login-help { margin: 12px 0 0; color: #8995a4; font-size: 9px; line-height: 1.5; }
+    .register-dialog { width: min(460px, calc(100vw - 28px)); }
+    .auth-switch { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-top: 13px; color: #8995a4; font-size: 9px; line-height: 1.5; text-align: center; }
+    .link-button { padding: 0; border: 0; background: none; color: #ff7b86; font: inherit; font-weight: 650; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+    .link-button:hover { color: #ff9aa3; }
+    .link-button:disabled { color: #6b7683; cursor: not-allowed; text-decoration: none; }
+    .register-step[hidden] { display: none; }
+    .register-step form { display: grid; gap: 12px; }
+    .code-input { letter-spacing: .42em; text-align: center; font-size: 17px; font-weight: 750; }
+    .field-hint { margin-top: 6px; color: #8995a4; font-size: 8px; line-height: 1.5; }
+    .step-note { margin: 0 0 13px; padding: 10px 11px; border: 1px solid rgba(105,168,255,.16); border-radius: 8px; background: rgba(105,168,255,.06); color: #9cb9df; font-size: 9px; line-height: 1.55; }
+    .step-note--warn { border-color: rgba(244,182,73,.24); background: rgba(244,182,73,.07); color: #e4c875; }
+    .resend-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+    .resend-hint { color: #8995a4; font-size: 9px; }
+    .viewer-note { margin: 8px 0 0; }
     .dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px 15px; border-bottom: 1px solid var(--line); }
     .dialog-title { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -.025em; }
     .dialog-subtitle { margin: 6px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
@@ -607,10 +621,49 @@
           <div class="field"><label for="loginEmail">Почта администратора</label><input id="loginEmail" name="email" type="email" autocomplete="username" required maxlength="254" value="admin@minima.app"></div>
           <div class="field"><label for="loginPassword">Пароль</label><input id="loginPassword" name="password" type="password" autocomplete="current-password" required maxlength="256"></div>
         </div>
-        <p class="login-help" id="loginHelp">Доступ задаётся переменными <code>ADMIN_EMAIL</code> и <code>ADMIN_PASSWORD</code> в файле <code>.env</code> на сервере.</p>
+        <p class="login-help" id="loginHelp">Доступ администратора задаётся переменными <code>ADMIN_EMAIL</code> и <code>ADMIN_PASSWORD</code> в файле <code>.env</code> на сервере.</p>
+        <div class="auth-switch">
+          <span id="signupSwitchText">Нет учётной записи?</span>
+          <button class="link-button" type="button" id="openRegisterButton">Зарегистрировать организацию</button>
+        </div>
       </div>
       <div class="dialog-foot"><button class="btn btn--primary" id="loginSubmit" type="submit">Войти в консоль</button></div>
     </form>
+  </dialog>
+
+  <dialog class="app-dialog register-dialog" id="registerDialog" aria-labelledby="registerTitle">
+    <div class="dialog-head">
+      <div><div class="login-mark" aria-hidden="true">M</div><h2 class="dialog-title" id="registerTitle">Регистрация владельца организации</h2><p class="dialog-subtitle" id="registerSubtitle">Шаг 1 из 2: данные организации. Учётная запись будет создана после подтверждения почты.</p></div>
+      <button class="icon-button" type="button" id="registerCloseButton" aria-label="Закрыть окно регистрации"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="register-step" id="registerStepForm">
+        <p class="form-error" id="registerFormError" role="alert" hidden></p>
+        <form id="registerProfileForm" autocomplete="on">
+          <div class="field"><label for="registerOrganization">Название организации</label><input id="registerOrganization" name="organization" required minlength="2" maxlength="80" placeholder="Например, Вектор Маркет"></div>
+          <div class="field"><label for="registerName">Ваше имя и фамилия</label><input id="registerName" name="name" required minlength="2" maxlength="80" placeholder="Имя Фамилия" autocomplete="name"></div>
+          <div class="field"><label for="registerEmail">Рабочая почта</label><input id="registerEmail" name="email" type="email" required maxlength="254" placeholder="name@company.ru" autocomplete="email"></div>
+          <div class="field"><label for="registerPassword">Пароль</label><input id="registerPassword" name="password" type="password" required minlength="12" maxlength="256" autocomplete="new-password"></div>
+          <div class="field"><label for="registerPasswordConfirm">Пароль ещё раз</label><input id="registerPasswordConfirm" name="passwordConfirm" type="password" required minlength="12" maxlength="256" autocomplete="new-password"></div>
+          <p class="field-hint">Минимум 12 символов: буквы и цифры. Пароль хранится на сервере в виде хеша.</p>
+        </form>
+      </div>
+      <div class="register-step" id="registerStepCode" hidden>
+        <p class="form-error" id="registerCodeError" role="alert" hidden></p>
+        <p class="step-note" id="registerCodeNote">Код отправлен на вашу почту.</p>
+        <form id="registerCodeForm" autocomplete="on">
+          <div class="field"><label for="registerCode">Код из письма</label><input class="code-input" id="registerCode" name="code" type="text" inputmode="numeric" pattern="[0-9]*" required minlength="4" maxlength="8" placeholder="000000" autocomplete="one-time-code"></div>
+          <div class="resend-row">
+            <span class="resend-hint" id="resendHint">Не пришло письмо?</span>
+            <button class="btn btn--subtle btn--small" type="button" id="resendCodeButton">Отправить код повторно</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn" type="button" id="registerBackButton">Отмена</button>
+      <button class="btn btn--primary" type="button" id="registerSubmitButton">Отправить код</button>
+    </div>
   </dialog>
 
   <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="false"></div>
@@ -634,8 +687,10 @@
   };
   const state = {
     tickets: [], statusFilter: 'all', priorityFilter: 'all', query: '', selectedId: '',
-    replyMode: 'reply', mobileView: 'queue', admin: null, smtpConfigured: false, sending: false, pendingSend: null
+    replyMode: 'reply', mobileView: 'queue', admin: null, user: null, role: null, organization: '',
+    smtpConfigured: false, signupEnabled: true, sending: false, pendingSend: null
   };
+  const registerState = { step: 'form', email: '', resendAt: 0, timer: 0 };
   let currentAdminName = 'Администратор Minima';
 
   const el = selector => document.querySelector(selector);
@@ -719,14 +774,38 @@
       ? 'Обращения хранятся на сервере · ответы отправляются через настроенный SMTP'
       : 'Обращения хранятся на сервере · для отправки ответов настройте SMTP';
   }
-  function setAdmin(admin) {
-    state.admin = admin || null;
-    if (!admin) return;
-    currentAdminName = admin.name || 'Администратор Minima';
+  const ROLE_LABELS = { admin: 'Администратор платформы', owner: 'Владелец организации' };
+  function setIdentity(user, role) {
+    state.user = user || null;
+    state.role = user ? (role || user.role || 'admin') : null;
+    state.admin = state.role === 'admin' ? user : null;
+    state.organization = user?.organization || '';
+    if (!user) {
+      currentAdminName = 'Администратор Minima';
+      state.admin = null;
+      return;
+    }
+    currentAdminName = user.name || 'Администратор Minima';
     document.querySelectorAll('.user-name, .top-user').forEach(node => { node.textContent = currentAdminName; });
     document.querySelectorAll('.side-user .avatar, .top-avatar').forEach(node => { node.textContent = initials(currentAdminName); });
-    const role = el('.user-role');
-    if (role) role.textContent = 'Администратор платформы';
+    const roleNode = el('.user-role');
+    if (roleNode) {
+      roleNode.textContent = state.role === 'owner' && state.organization
+        ? `${ROLE_LABELS.owner} · ${state.organization}`
+        : ROLE_LABELS[state.role] || ROLE_LABELS.admin;
+    }
+  }
+  function setAdmin(admin) { setIdentity(admin, 'admin'); }
+  function isOwner() { return state.role === 'owner'; }
+  function setSignupAvailability(enabled) {
+    state.signupEnabled = enabled !== false;
+    const button = el('#openRegisterButton');
+    const text = el('#signupSwitchText');
+    if (!button || !text) return;
+    button.hidden = !state.signupEnabled;
+    text.textContent = state.signupEnabled
+      ? 'Нет учётной записи?'
+      : 'Регистрация владельцев отключена администратором платформы.';
   }
   function showLoginError(message = '') {
     const error = el('#loginError');
@@ -744,7 +823,7 @@
     } else dialog.removeAttribute('open');
   }
   function requireLogin(message = '') {
-    state.admin = null;
+    setIdentity(null, null);
     state.tickets = [];
     state.selectedId = '';
     render();
@@ -783,13 +862,17 @@
     try {
       const session = await api('/api/v1/auth/session');
       setDeliveryStatus(session.smtpConfigured);
+      setSignupAvailability(session.signupEnabled);
       if (!session.authenticated) {
-        showLoginError('Войдите, используя учётную запись администратора из .env.');
+        showLoginError(state.signupEnabled
+          ? 'Войдите администратором или зарегистрируйте организацию.'
+          : 'Войдите, используя учётную запись администратора из .env.');
         openDialog(el('#loginDialog'));
         return;
       }
-      setAdmin(session.admin);
+      setIdentity(session.user, session.role);
       closeDialog(el('#loginDialog'));
+      closeRegister();
       await fetchTickets();
     } catch (error) {
       setDeliveryStatus(false);
@@ -808,9 +891,10 @@
         method: 'POST',
         body: JSON.stringify({ email: String(data.get('email')).trim(), password: String(data.get('password')) })
       });
-      setAdmin(result.admin);
+      setIdentity(result.user, result.role);
       setDeliveryStatus(result.smtpConfigured);
       closeDialog(el('#loginDialog'));
+      closeRegister();
       el('#loginPassword').value = '';
       const loaded = await fetchTickets();
       if (loaded) toast('Вход выполнен. Данные загружены с сервера.');
@@ -825,13 +909,170 @@
   async function logout() {
     try { await api('/api/v1/auth/logout', { method: 'POST' }); }
     catch (_) { /* local interface still returns to login */ }
-    setAdmin(null);
+    setIdentity(null, null);
     state.tickets = [];
     state.selectedId = '';
     setDeliveryStatus(false);
     render();
     showLoginError('Вы вышли из консоли.');
     openDialog(el('#loginDialog'));
+  }
+
+  /* Регистрация владельца организации с подтверждением почты */
+  function showRegisterError(message = '') {
+    const node = el(registerState.step === 'form' ? '#registerFormError' : '#registerCodeError');
+    if (!node) return;
+    node.textContent = message;
+    node.hidden = !message;
+  }
+  function updateSubmitButton() {
+    const button = el('#registerSubmitButton');
+    button.disabled = false;
+    button.textContent = registerState.step === 'form' ? 'Отправить код' : 'Подтвердить почту';
+  }
+  function setRegisterStep(step) {
+    registerState.step = step;
+    el('#registerStepForm').hidden = step !== 'form';
+    el('#registerStepCode').hidden = step !== 'code';
+    el('#registerSubtitle').textContent = step === 'form'
+      ? 'Шаг 1 из 2: данные организации. Учётная запись появится только после подтверждения почты.'
+      : 'Шаг 2 из 2: введите код из письма, чтобы подтвердить почту.';
+    el('#registerBackButton').textContent = step === 'form' ? 'Отмена' : 'Изменить данные';
+    showRegisterError('');
+    updateSubmitButton();
+  }
+  function updateResendButton() {
+    const button = el('#resendCodeButton');
+    const hint = el('#resendHint');
+    const left = Math.max(0, Math.ceil((registerState.resendAt - Date.now()) / 1000));
+    if (left > 0) {
+      button.disabled = true;
+      button.textContent = `Повторно через ${left} с`;
+      hint.textContent = 'Письмо уже отправлено.';
+    } else {
+      button.disabled = false;
+      button.textContent = 'Отправить код повторно';
+      hint.textContent = 'Не пришло письмо?';
+    }
+  }
+  function startResendTimer(seconds) {
+    registerState.resendAt = Date.now() + Math.max(1, Number(seconds) || 60) * 1000;
+    window.clearInterval(registerState.timer);
+    registerState.timer = window.setInterval(() => {
+      updateResendButton();
+      if (Date.now() >= registerState.resendAt) window.clearInterval(registerState.timer);
+    }, 1000);
+    updateResendButton();
+  }
+  function openRegister() {
+    setRegisterStep('form');
+    el('#registerFormError').hidden = true;
+    el('#registerCodeError').hidden = true;
+    el('#registerProfileForm').reset();
+    el('#registerCodeForm').reset();
+    closeDialog(el('#loginDialog'));
+    openDialog(el('#registerDialog'));
+    window.setTimeout(() => el('#registerOrganization')?.focus(), 50);
+  }
+  function closeRegister() {
+    window.clearInterval(registerState.timer);
+    closeDialog(el('#registerDialog'));
+  }
+  function describeCodeDelivery(result, resend = false) {
+    const note = el('#registerCodeNote');
+    note.classList.toggle('step-note--warn', result.delivery !== 'email');
+    if (result.delivery === 'email') {
+      note.textContent = resend
+        ? `Новый код отправлен на ${result.email}. Предыдущий код больше не действителен.`
+        : `Код отправлен на ${result.email}. Он действует ${Math.round((result.expiresInSeconds || 900) / 60)} мин, состоит из ${result.codeLength || 6} цифр и используется один раз.`;
+      toast(resend ? 'Новый код отправлен на почту.' : 'Код подтверждения отправлен на почту.');
+    } else {
+      note.textContent = result.message || 'SMTP на сервере не настроен: письмо НЕ отправлено.';
+      toast(resend ? 'Код обновлён, но письмо не отправлено: SMTP не настроен.' : 'Код создан, но письмо не отправлено: SMTP не настроен.', 'warn');
+    }
+  }
+  async function submitRegisterProfile() {
+    const form = el('#registerProfileForm');
+    if (!form.reportValidity()) return;
+    const data = new FormData(form);
+    const password = String(data.get('password'));
+    if (password !== String(data.get('passwordConfirm'))) {
+      showRegisterError('Пароли не совпадают.');
+      el('#registerPasswordConfirm').focus();
+      return;
+    }
+    const button = el('#registerSubmitButton');
+    button.disabled = true;
+    button.textContent = 'Отправляем код…';
+    showRegisterError('');
+    try {
+      const result = await api('/api/v1/auth/register/request', {
+        method: 'POST',
+        body: JSON.stringify({
+          organization: String(data.get('organization')).trim(),
+          name: String(data.get('name')).trim(),
+          email: String(data.get('email')).trim(),
+          password
+        })
+      });
+      registerState.email = result.email;
+      setRegisterStep('code');
+      describeCodeDelivery(result);
+      startResendTimer(result.resendAvailableInSeconds);
+      el('#registerCode')?.focus();
+    } catch (error) {
+      showRegisterError(error.message);
+    } finally {
+      updateSubmitButton();
+    }
+  }
+  async function submitRegisterCode() {
+    const form = el('#registerCodeForm');
+    if (!form.reportValidity()) return;
+    const data = new FormData(form);
+    const button = el('#registerSubmitButton');
+    button.disabled = true;
+    button.textContent = 'Проверяем код…';
+    showRegisterError('');
+    try {
+      const result = await api('/api/v1/auth/register/confirm', {
+        method: 'POST',
+        body: JSON.stringify({ email: registerState.email, code: String(data.get('code')).replace(/\s+/g, '') })
+      });
+      setIdentity(result.user, result.role);
+      setDeliveryStatus(result.smtpConfigured);
+      closeRegister();
+      closeDialog(el('#loginDialog'));
+      form.reset();
+      el('#registerPassword').value = '';
+      el('#registerPasswordConfirm').value = '';
+      const loaded = await fetchTickets();
+      if (loaded) toast('Почта подтверждена. Учётная запись владельца создана.');
+    } catch (error) {
+      const hint = error.status === 410 || error.status === 429 ? ' Запросите новый код кнопкой ниже.' : '';
+      showRegisterError(error.message + hint);
+      el('#registerCode')?.select();
+    } finally {
+      updateSubmitButton();
+    }
+  }
+  async function resendCode() {
+    const button = el('#resendCodeButton');
+    button.disabled = true;
+    showRegisterError('');
+    try {
+      const result = await api('/api/v1/auth/register/resend', {
+        method: 'POST',
+        body: JSON.stringify({ email: registerState.email })
+      });
+      registerState.email = result.email;
+      describeCodeDelivery(result, true);
+      startResendTimer(result.resendAvailableInSeconds);
+      el('#registerCode')?.focus();
+    } catch (error) {
+      showRegisterError(error.message);
+      updateResendButton();
+    }
   }
   function renderCounts() {
     const tickets = state.tickets;
@@ -928,6 +1169,7 @@
     const resolutionDue = timestamp(ticket.resolutionDue);
     const messages = Array.isArray(ticket.messages) ? ticket.messages : [];
     const assigneeOptions = ['<option value="">Не назначен</option>', ...STAFF.map(person => `<option value="${html(person)}" ${ticket.assigned === person ? 'selected' : ''}>${html(person)}</option>`)].join('');
+    const ownerView = isOwner();
     const sendDisabled = state.replyMode === 'reply' && (!state.smtpConfigured || state.sending);
     const sendLabel = state.replyMode === 'note' ? (state.sending ? 'Сохраняем…' : 'Добавить заметку') : (state.sending ? 'Отправляем…' : state.smtpConfigured ? 'Отправить письмо' : 'SMTP не настроен');
     const composerHint = state.replyMode === 'note'
@@ -937,7 +1179,7 @@
       <div class="detail-head">
         <div class="detail-kicker"><button class="icon-button back-mobile" type="button" id="backToQueue" aria-label="Назад к очереди" title="Назад к очереди"><svg aria-hidden="true"><use href="#i-chevron"/></svg></button><span>${html(ticket.id)}</span><span aria-hidden="true">·</span><span>Создано ${html(timeAgo(ticket.createdAt))}</span></div>
         <div class="detail-head-main"><div class="detail-title-wrap"><h2 class="detail-title">${html(ticket.subject)}</h2><div class="detail-badges"><span class="status-chip status-chip--${html(status.css)}">${html(status.label)}</span><span class="priority-chip priority--${html(ticket.priority)}">${html(priority.label)}</span><span class="category-chip">${html(ticket.category)}</span></div></div>
-          <div class="detail-head-actions"><button class="icon-button" type="button" id="escalateButton" title="Эскалировать" aria-label="Эскалировать обращение"><svg aria-hidden="true"><use href="#i-arrow"/></svg></button><button class="icon-button" type="button" id="resolveButton" title="${isResolved ? 'Переоткрыть' : 'Закрыть обращение'}" aria-label="${isResolved ? 'Переоткрыть обращение' : 'Закрыть обращение'}"><svg aria-hidden="true"><use href="#${isResolved ? 'i-inbox' : 'i-check'}"/></svg></button></div>
+          <div class="detail-head-actions">${ownerView ? '' : `<button class="icon-button" type="button" id="escalateButton" title="Эскалировать" aria-label="Эскалировать обращение"><svg aria-hidden="true"><use href="#i-arrow"/></svg></button><button class="icon-button" type="button" id="resolveButton" title="${isResolved ? 'Переоткрыть' : 'Закрыть обращение'}" aria-label="${isResolved ? 'Переоткрыть обращение' : 'Закрыть обращение'}"><svg aria-hidden="true"><use href="#${isResolved ? 'i-inbox' : 'i-check'}"/></svg></button>`}</div>
         </div>
       </div>
       <div class="customer-card" aria-label="Информация о клиенте">
@@ -952,11 +1194,14 @@
       <div class="conversation-header"><div class="conversation-heading"><svg aria-hidden="true"><use href="#i-message"/></svg>Переписка</div><span class="conversation-count">${messages.filter(message => message.kind !== 'event').length} сообщений</span></div>
       <div class="conversation" id="conversation" role="log" aria-label="История переписки">${messages.map(renderMessage).join('') || '<div class="queue-empty"><div><strong>Сообщений пока нет</strong></div></div>'}</div>
       <div class="detail-footer">
-        <div class="assignment-row"><label class="assignment-label" for="assigneeSelect">Ответственный</label><select class="assignee-select" id="assigneeSelect" aria-label="Ответственный специалист">${assigneeOptions}</select></div>
+        ${ownerView ? `
+          <div class="assignment-row"><span class="assignment-label">Ответственный</span><span class="meta-value">${html(ticket.assigned || 'Пока не назначен')}</span></div>
+          <div class="sla-note viewer-note">Вы видите обращения своей организации. Статусы, приоритет и письма меняет команда поддержки Minima.</div>
+        ` : `<div class="assignment-row"><label class="assignment-label" for="assigneeSelect">Ответственный</label><select class="assignee-select" id="assigneeSelect" aria-label="Ответственный специалист">${assigneeOptions}</select></div>
         ${isResolved ? '<div class="sla-note" style="margin:0 0 8px">Обращение закрыто. Переоткройте его, чтобы продолжить переписку.</div>' : `
           <div class="reply-mode" role="group" aria-label="Режим сообщения"><button class="mode-button" type="button" data-reply-mode="reply" aria-pressed="${state.replyMode === 'reply'}">Ответ клиенту</button><button class="mode-button" type="button" data-reply-mode="note" aria-pressed="${state.replyMode === 'note'}">Заметка команды</button></div>
           <div class="composer" id="composer" data-mode="${state.replyMode}"><label class="sr-only" for="replyText">${state.replyMode === 'note' ? 'Текст внутренней заметки' : 'Текст ответа клиенту'}</label><textarea id="replyText" maxlength="2000" placeholder="${state.replyMode === 'note' ? 'Заметка видна только команде…' : 'Напишите ответ клиенту…'}"></textarea><div class="composer-bottom"><span class="composer-hint">${composerHint}</span><button class="send-button" type="button" id="sendReplyButton" ${sendDisabled ? 'disabled' : ''}><svg aria-hidden="true"><use href="#i-send"/></svg>${sendLabel}</button></div></div>
-          <div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn btn--subtle btn--small" type="button" id="waitButton">${ticket.status === 'waiting' ? 'Вернуть в работу' : 'Ждать клиента'}</button></div>`}
+          <div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn btn--subtle btn--small" type="button" id="waitButton">${ticket.status === 'waiting' ? 'Вернуть в работу' : 'Ждать клиента'}</button></div>`}`}
       </div>`;
     const conversation = el('#conversation');
     if (conversation) conversation.scrollTop = conversation.scrollHeight;
@@ -1076,18 +1321,40 @@
     document.querySelectorAll('[data-status-filter]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
     renderQueue();
   }));
-  el('#newTicketButton').addEventListener('click', () => openDialog(el('#newTicketDialog')));
+  el('#newTicketButton').addEventListener('click', () => {
+    const company = el('#formCompany');
+    if (company) {
+      company.value = isOwner() ? (state.organization || '') : '';
+      company.readOnly = isOwner();
+      company.title = isOwner() ? 'Обращение создаётся от вашей организации' : '';
+    }
+    openDialog(el('#newTicketDialog'));
+  });
   el('#slaRulesButton').addEventListener('click', () => openDialog(el('#slaRulesDialog')));
   el('#slaStripRulesButton').addEventListener('click', () => openDialog(el('#slaRulesDialog')));
   el('#exportButton').addEventListener('click', exportCsv);
   el('#refreshButton').addEventListener('click', async () => { if (await fetchTickets()) toast('Очередь обновлена с сервера.'); });
   el('#notificationsButton').addEventListener('click', () => toast('Новых системных уведомлений нет.', 'warn'));
   el('#logoutButton').addEventListener('click', logout);
-  document.querySelector('.user-menu').addEventListener('click', () => toast(`${currentAdminName} · администратор платформы Minima.`, 'warn'));
+  document.querySelector('.user-menu').addEventListener('click', () => toast(`${currentAdminName} · ${state.role === 'owner' ? `владелец организации ${state.organization || ''}`.trim() : 'администратор платформы'} Minima.`, 'warn'));
   document.querySelectorAll('[data-close-dialog]').forEach(button => button.addEventListener('click', () => closeDialog(button.closest('dialog'))));
-  document.querySelectorAll('dialog:not(#loginDialog)').forEach(dialog => dialog.addEventListener('click', event => { if (event.target === dialog) closeDialog(dialog); }));
+  document.querySelectorAll('dialog:not(#loginDialog):not(#registerDialog)').forEach(dialog => dialog.addEventListener('click', event => { if (event.target === dialog) closeDialog(dialog); }));
   el('#newTicketForm').addEventListener('submit', event => { event.preventDefault(); if (event.currentTarget.reportValidity()) void createTicket(event.currentTarget); });
   el('#loginForm').addEventListener('submit', event => { event.preventDefault(); if (event.currentTarget.reportValidity()) void submitLogin(event.currentTarget); });
+  el('#openRegisterButton').addEventListener('click', openRegister);
+  el('#registerSubmitButton').addEventListener('click', () => {
+    if (registerState.step === 'form') void submitRegisterProfile();
+    else void submitRegisterCode();
+  });
+  el('#registerProfileForm').addEventListener('submit', event => { event.preventDefault(); void submitRegisterProfile(); });
+  el('#registerCodeForm').addEventListener('submit', event => { event.preventDefault(); void submitRegisterCode(); });
+  el('#resendCodeButton').addEventListener('click', () => void resendCode());
+  el('#registerBackButton').addEventListener('click', () => {
+    if (registerState.step === 'code') { setRegisterStep('form'); return; }
+    closeRegister();
+    openDialog(el('#loginDialog'));
+  });
+  el('#registerCloseButton').addEventListener('click', () => { closeRegister(); openDialog(el('#loginDialog')); });
 
   detail.addEventListener('click', async event => {
     const target = event.target.closest('button');
@@ -1128,8 +1395,10 @@
   el('#newTicketDialog').addEventListener('click', event => { if (event.target === event.currentTarget) closeDialog(event.currentTarget); });
   el('#loginDialog').addEventListener('cancel', event => event.preventDefault());
   el('#loginDialog').addEventListener('click', event => { if (event.target === event.currentTarget) event.preventDefault(); });
+  el('#registerDialog').addEventListener('cancel', event => event.preventDefault());
+  el('#registerDialog').addEventListener('click', event => { if (event.target === event.currentTarget) event.preventDefault(); });
   window.setInterval(() => {
-    if (state.admin) void fetchTickets({ silent: true });
+    if (state.role) void fetchTickets({ silent: true });
     else render();
   }, 30 * 1000);
 
