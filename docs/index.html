@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Minima — консоль поддержки</title>
+  <meta name="description" content="Консоль поддержки Minima: очередь обращений, сроки SLA, ответы по электронной почте и регистрация владельца организации с подтверждением email.">
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #111720;
+      --line: #232c37;
+      --text: #e6eaef;
+      --muted: #8995a4;
+      --red: #e11d2e;
+      --green: #35c683;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.55; }
+    a { color: inherit; }
+    .wrap { width: min(940px, calc(100vw - 40px)); margin: 0 auto; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 0; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 17px; letter-spacing: -.02em; }
+    .brand-mark { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 9px; background: var(--red); color: #fff; font-weight: 850; }
+    .brand small { display: block; color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: 0; }
+    .hero { padding: 40px 0 26px; }
+    h1 { margin: 0 0 12px; font-size: clamp(26px, 4.6vw, 40px); line-height: 1.15; letter-spacing: -.03em; }
+    .lead { margin: 0; max-width: 62ch; color: #a9b4c0; font-size: 15px; }
+    .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+    .button { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 18px; border: 1px solid var(--red); border-radius: 9px; background: var(--red); color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; }
+    .button:hover { background: #f02b3c; }
+    .button--ghost { border-color: #2f3a47; background: transparent; color: #c9d2db; }
+    .button--ghost:hover { background: #172029; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; padding: 18px 0 8px; }
+    .card { padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+    .card h2 { margin: 0 0 8px; font-size: 15px; letter-spacing: -.01em; }
+    .card p { margin: 0; color: var(--muted); font-size: 13px; }
+    .note { margin: 26px 0 0; padding: 14px 16px; border: 1px solid rgba(105,168,255,.16); border-radius: 10px; background: rgba(105,168,255,.06); color: #9cb9df; font-size: 13px; }
+    footer { margin: 44px 0 40px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    code { padding: 1px 5px; border-radius: 5px; background: #172029; color: #cbd5df; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand"><span class="brand-mark" aria-hidden="true">M</span><span>Minima<small>поддержка клиентов</small></span></div>
+    </header>
+
+    <section class="hero">
+      <h1>Консоль поддержки Minima</h1>
+      <p class="lead">Очередь обращений, сроки SLA, ответы клиентам по электронной почте и регистрация владельца организации с подтверждением email. Интерфейс и API работают с одного адреса: обращения хранятся на сервере, письма уходят через SMTP.</p>
+      <div class="cta">
+        <!-- TODO: укажите адрес своей консоли (например https://support.ваш-домен.ru) -->
+        <a class="button" id="consoleLink" href="#console">Открыть консоль</a>
+        <a class="button button--ghost" href="https://github.com/dragonslaer666/minima">Исходный код на GitHub</a>
+      </div>
+      <p class="note" id="consoleHint">Консоль работает на сервере с backend (Docker). Эта страница — статическая витрина: здесь нет обращений и входа.</p>
+    </section>
+
+    <section class="cards">
+      <article class="card">
+        <h2>Очередь и приоритеты</h2>
+        <p>Фильтры по статусу, приоритету и поиску; карточка клиента с тарифом, категорией и ответственным.</p>
+      </article>
+      <article class="card">
+        <h2>Сроки SLA</h2>
+        <p>Таймеры первого ответа и решения считает сервер: они пересчитываются при смене приоритета и останавливаются по факту отправки.</p>
+      </article>
+      <article class="card">
+        <h2>Почта и заметки</h2>
+        <p>Публичный ответ уходит клиенту по SMTP, внутренняя заметка остаётся внутри команды и клиенту не отправляется.</p>
+      </article>
+      <article class="card">
+        <h2>Две роли</h2>
+        <p>Администратор платформы ведёт обращения. Владелец организации регистрируется сам, подтверждает почту кодом и видит только свои обращения.</p>
+      </article>
+    </section>
+
+    <footer>
+      Backend — FastAPI и SQLite, письма — SMTP, развёртывание — <code>docker compose up -d --build</code>. Подробности в README репозитория.
+    </footer>
+  </div>
+</body>
+</html>

@@ -2,6 +2,8 @@
 
 Одностраничная консоль Minima подключена к FastAPI backend. Обращения, изменения статусов и переписка хранятся в SQLite; публичный ответ отправляется клиенту на email по SMTP. Внутренняя заметка сохраняется на сервере и клиенту не отправляется.
 
+Статическая витрина проекта — `docs/`, она публикуется на GitHub Pages. Рабочая консоль с backend запускается на сервере: см. раздел «Развёртывание на сервере».
+
 В консоли есть две роли:
 
 - **Администратор платформы** — учётная запись из `.env`. Видит все обращения, меняет статусы, приоритет и ответственного, отвечает клиентам по почте, оставляет внутренние заметки.
@@ -36,6 +38,71 @@ cd /home/user/minima
 Откройте `http://localhost:8000`. Вход администратора — `ADMIN_EMAIL` / `ADMIN_PASSWORD` из `.env`; рядом есть кнопка «Зарегистрировать организацию». OpenAPI-схема доступна по адресу `http://localhost:8000/api/openapi.json`.
 
 HTML, CSS, JavaScript и SVG-иконки остаются в одном `index.html`. Сервер раздаёт этот файл и API с одного origin; CDN и внешние frontend-зависимости не используются.
+
+## Развёртывание на сервере
+
+GitHub Pages не умеет запускать Python: там публикуется только статическая витрина из `docs/` (workflow `.github/workflows/pages.yml`). Сама консоль требует backend — его поднимаем в Docker.
+
+Нужно: сервер с Docker и Docker Compose, домен с HTTPS и доступ к SMTP-серверу провайдера.
+
+### 1. Код и переменные окружения
+
+```bash
+git clone https://github.com/dragonslaer666/minima.git
+cd minima
+cp .env.example .env
+nano .env
+```
+
+Для продакшена заполните:
+
+```dotenv
+APP_ENV=production
+SEED_DEMO_DATA=false
+COOKIE_SECURE=true
+DATABASE_PATH=/app/data/minima-support.sqlite3
+ADMIN_EMAIL=support@ваш-домен.ru
+ADMIN_PASSWORD=<сгенерируйте длинный пароль>
+SESSION_SECRET=<python3 -c 'import secrets; print(secrets.token_hex(32))'>
+SMTP_HOST=smtp.провайдера.ru
+SMTP_PORT=587
+SMTP_USERNAME=почта@ваш-домен.ru
+SMTP_PASSWORD=пароль-приложения
+SMTP_FROM=Minima Support <support@ваш-домен.ru>
+SMTP_REPLY_TO=support@ваш-домен.ru
+DEV_LOG_EMAIL_CODES=false
+```
+
+`APP_ENV=production` требует `COOKIE_SECURE=true`: без HTTPS браузер не сохранит cookie и вход не сработает. Пароль приложения вводите только в `.env` на сервере — файл в Git не попадает.
+
+### 2. Запуск
+
+```bash
+docker compose up -d --build
+curl http://<хост>/healthz           # {"status":"ok"}
+docker compose logs -f web
+docker compose ps
+```
+
+Откройте `https://ваш-домен.ru` и войдите администратором. Наружу смотрит только nginx (порт 80), порт backend закрыт внутри docker-сети.
+
+### 3. HTTPS
+
+Получите сертификат (например, `certbot certonly --webroot -w ./deploy/certbot -d ваш-домен.ru`), положите его в `deploy/certs/`, раскомментируйте монтирования в `docker-compose.yml` и блок `443` в `deploy/nginx.conf`, затем `docker compose up -d`.
+
+### 4. Обновление и резервные копии
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+```bash
+docker run --rm -v minima-data:/data -v "$PWD":/backup alpine \
+  tar czf /backup/minima-data-$(date +%F).tgz -C /data .
+```
+
+База — SQLite в томе `minima-data`, это один файл в WAL-режиме; для резервной копии останавливать сервис не обязательно, но желательно. Один экземпляр приложения: PostgreSQL потребуется, если понадобятся несколько реплик.
 
 ## Настройка реальной отправки email
 
@@ -164,6 +231,7 @@ DEV_LOG_EMAIL_CODES=true
 - Привязка владельца к организации идёт по названию компании: владелец видит обращения, у которых поле «Компания» совпадает с его организацией. Отдельного поля `organization_id` в схеме обращений пока нет.
 - Регистрация возможна только при настроенном SMTP (либо в режиме `DEV_LOG_EMAIL_CODES`). Без SMTP сервер честно отвечает `503` и не создаёт код.
 - Локальный приёмник `tools/dev_smtp_server.py` — только для разработки: он принимает письма на `127.0.0.1`, не ретранслирует их наружу и не проверяет SPF/DKIM/DMARC. Реальная доставка проверяется только с настоящим провайдером.
+- GitHub Pages обслуживает только статику: витрина в `docs/` работает без backend, а консоль с очередью, SLA, регистрацией и письмами — только там, где запущен контейнер с FastAPI.
 - Endpoint запроса кода отвечает `409`, если почта уже подтверждена, — это раскрывает факт регистрации почты в Minima.
 - Реализована исходящая почта по SMTP. Входящие письма, Telegram-бот, вебхуки и автоматические фоновые SLA-эскалации не подключены.
 - Демо-обращения показывают работу интерфейса; для реального обслуживания нужны данные клиентов или входящий канал обращений.
