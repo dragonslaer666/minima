@@ -27,6 +27,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Адрес консоли задаётся переменной репозитория CONSOLE_URL
+      # (Settings → Secrets and variables → Actions → Variables), без правки кода.
+      - name: Подставить адрес консоли
+        env:
+          CONSOLE_URL: ${{ vars.CONSOLE_URL }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          url = os.environ.get("CONSOLE_URL", "").strip()
+          path = Path("docs/index.html")
+          text = path.read_text(encoding="utf-8")
+          if url:
+              text = text.replace("__CONSOLE_URL__", url)
+              text = text.replace(
+                  "__CONSOLE_HINT__",
+                  "Консоль развёрнута на сервере: обращения, SLA, письма и регистрация работают через backend.",
+              )
+          else:
+              text = text.replace("__CONSOLE_URL__", "#console")
+              text = text.replace(
+                  "__CONSOLE_HINT__",
+                  "Адрес консоли пока не задан. Укажите переменную репозитория CONSOLE_URL "
+                  "(Settings → Secrets and variables → Actions → Variables) и перезапустите этот workflow.",
+              )
+          path.write_text(text, encoding="utf-8")
+          PY
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
